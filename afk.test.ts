@@ -19,23 +19,36 @@ function harness(opts: { running?: () => boolean } = {}) {
 		events: { on: (ev: string, h: Function) => (bus[ev] ??= []).push(h) },
 		registerCommand: (_n: string, c: unknown) => (command = c),
 		registerTool: (t: unknown) => (tool = t),
-		appendEntry: (customType: string, data: unknown) => entries.push({ type: "custom", customType, data }),
+		appendEntry: (customType: string, data: unknown) =>
+			entries.push({ type: "custom", customType, data }),
 		sendMessage: (m: unknown, o: unknown) => sent.push({ m, o }),
 	};
 	const ctx = {
 		isIdle: () => idle,
 		hasPendingMessages: () => false,
 		ui: { setStatus() {}, notify() {} },
-		sessionManager: { getEntries: () => entries, getSessionFile: () => "/s/me.jsonl", getSessionId: () => "id" },
+		sessionManager: {
+			getEntries: () => entries,
+			getSessionFile: () => "/s/me.jsonl",
+			getSessionId: () => "id",
+		},
 	};
 	afk(pi as any);
-	const fire = (ev: string, e: unknown = {}) => handlers[ev]?.forEach((h) => h(e, ctx));
-	const stop = (stopReason: string) => fire("agent_end", { messages: [{ role: "assistant", stopReason }] });
+	const fire = (ev: string, e: unknown = {}) =>
+		handlers[ev]?.forEach((h) => h(e, ctx));
+	const stop = (stopReason: string) =>
+		fire("agent_end", { messages: [{ role: "assistant", stopReason }] });
 	return {
-		sent, entries, ctx, fire, stop, bus,
+		sent,
+		entries,
+		ctx,
+		fire,
+		stop,
+		bus,
 		setIdle: (v: boolean) => (idle = v),
 		cmd: (args = "") => command.handler(args, ctx),
-		tool: (blockers: unknown[]) => tool.execute("1", { blockers }, undefined, undefined, ctx),
+		tool: (blockers: unknown[]) =>
+			tool.execute("1", { blockers }, undefined, undefined, ctx),
 	};
 }
 
@@ -97,7 +110,11 @@ test("state persists via session entries and resets on /new", () => {
 	h.stop("stop");
 	h.fire("agent_settled");
 	assert.equal(h.sent.length, 1); // only the original /afk on nudge
-	h.entries.push({ type: "custom", customType: "afk", data: { on: true, blocked: false } });
+	h.entries.push({
+		type: "custom",
+		customType: "afk",
+		data: { on: true, blocked: false },
+	});
 	h.fire("session_start");
 	h.stop("stop");
 	h.fire("agent_settled");
@@ -131,7 +148,10 @@ test("subagentsRunning reads pi-subagents status files for this session only", (
 		assert.equal(subagentsRunning("/s/me.jsonl", dir), false);
 		writeFileSync(path.join(dir, "a", "status.json"), "not json");
 		assert.equal(subagentsRunning("/s/me.jsonl", dir), false);
-		assert.equal(subagentsRunning("/s/me.jsonl", path.join(dir, "missing")), false);
+		assert.equal(
+			subagentsRunning("/s/me.jsonl", path.join(dir, "missing")),
+			false,
+		);
 	} finally {
 		rmSync(dir, { recursive: true, force: true });
 	}

@@ -1,4 +1,7 @@
-import type { ExtensionAPI, ExtensionContext } from "@earendil-works/pi-coding-agent";
+import type {
+	ExtensionAPI,
+	ExtensionContext,
+} from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { readdirSync, readFileSync } from "node:fs";
 import os from "node:os";
@@ -23,11 +26,15 @@ function tempScopeId(): string {
 	return user ? `user-${user.replace(/[^A-Za-z0-9._-]/g, "_")}` : "shared";
 }
 export const ASYNC_RUNS_DIR = path.join(
-	process.env.PI_SUBAGENTS_TEMP_ROOT?.trim() || path.join(os.tmpdir(), `pi-subagents-${tempScopeId()}`),
+	process.env.PI_SUBAGENTS_TEMP_ROOT?.trim() ||
+		path.join(os.tmpdir(), `pi-subagents-${tempScopeId()}`),
 	"async-subagent-runs",
 );
 
-export function subagentsRunning(sessionId: string | undefined, dir = ASYNC_RUNS_DIR): boolean {
+export function subagentsRunning(
+	sessionId: string | undefined,
+	dir = ASYNC_RUNS_DIR,
+): boolean {
 	let entries: string[];
 	try {
 		entries = readdirSync(dir);
@@ -37,7 +44,9 @@ export function subagentsRunning(sessionId: string | undefined, dir = ASYNC_RUNS
 	return entries.some((d) => {
 		try {
 			const s = JSON.parse(readFileSync(path.join(dir, d, "status.json"), "utf8"));
-			return s.sessionId === sessionId && (s.state === "queued" || s.state === "running");
+			return (
+				s.sessionId === sessionId && (s.state === "queued" || s.state === "running")
+			);
 		} catch {
 			return false;
 		}
@@ -54,7 +63,8 @@ export default function (pi: ExtensionAPI) {
 	const save = () => pi.appendEntry("afk", { on, blocked });
 	const status = (ctx: ExtensionContext) => {
 		let text: string | undefined;
-		if (on) text = blocked ? "afk: blocked on you" : `afk ${nudges}/${MAX_NUDGES}`;
+		if (on)
+			text = blocked ? "afk: blocked on you" : `afk ${nudges}/${MAX_NUDGES}`;
 		ctx.ui.setStatus("afk", text);
 	};
 	const sessionId = (ctx: ExtensionContext) =>
@@ -67,12 +77,18 @@ export default function (pi: ExtensionAPI) {
 		if (!force && lastStop !== "stop") return; // aborted → human is at the keyboard; error → don't loop on failures
 		if (subagentsRunning(sessionId(ctx))) return; // async children still working; their completion wakes the session
 		if (nudges >= MAX_NUDGES) {
-			ctx.ui.notify(`AFK: nudge cap (${MAX_NUDGES}) reached, toggle /afk to reset`, "warning");
+			ctx.ui.notify(
+				`AFK: nudge cap (${MAX_NUDGES}) reached, toggle /afk to reset`,
+				"warning",
+			);
 			return;
 		}
 		nudges++;
 		status(ctx);
-		pi.sendMessage({ customType: "afk-nudge", content: NUDGE, display: true }, { triggerTurn: true });
+		pi.sendMessage(
+			{ customType: "afk-nudge", content: NUDGE, display: true },
+			{ triggerTurn: true },
+		);
 	};
 
 	pi.on("session_start", (_e, ctx) => {
@@ -91,9 +107,12 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.registerCommand("afk", {
-		description: "Toggle AFK mode: agent keeps working until all work is blocked on you (/afk [on|off])",
+		description:
+			"Toggle AFK mode: agent keeps working until all work is blocked on you (/afk [on|off])",
 		getArgumentCompletions: (p) => {
-			const items = ["on", "off"].filter((v) => v.startsWith(p)).map((v) => ({ value: v, label: v }));
+			const items = ["on", "off"]
+				.filter((v) => v.startsWith(p))
+				.map((v) => ({ value: v, label: v }));
 			return items.length ? items : null;
 		},
 		handler: async (args, ctx) => {
@@ -120,7 +139,9 @@ export default function (pi: ExtensionAPI) {
 	});
 
 	pi.on("agent_end", (event) => {
-		const last = event.messages.findLast((m) => m.role === "assistant") as { stopReason?: string } | undefined;
+		const last = event.messages.findLast((m) => m.role === "assistant") as
+			| { stopReason?: string }
+			| undefined;
 		lastStop = last?.stopReason;
 	});
 
@@ -144,20 +165,37 @@ export default function (pi: ExtensionAPI) {
 			blockers: Type.Array(
 				Type.Object({
 					work: Type.String({ description: "What is blocked" }),
-					decision: Type.String({ description: "The human decision needed to unblock it" }),
+					decision: Type.String({
+						description: "The human decision needed to unblock it",
+					}),
 				}),
 				{ minItems: 1 },
 			),
 		}),
 		async execute(_id, { blockers }, _signal, _update, ctx) {
-			if (!on) return { content: [{ type: "text", text: "AFK mode is off; nothing to do." }], details: {} };
-			if (blockers.length === 0) return { content: [{ type: "text", text: "Rejected: list at least one blocker." }], details: {} };
+			if (!on)
+				return {
+					content: [{ type: "text", text: "AFK mode is off; nothing to do." }],
+					details: {},
+				};
+			if (blockers.length === 0)
+				return {
+					content: [{ type: "text", text: "Rejected: list at least one blocker." }],
+					details: {},
+				};
 			blocked = true;
 			save();
 			status(ctx);
-			const list = blockers.map((b) => `- ${b.work} → needs: ${b.decision}`).join("\n");
+			const list = blockers
+				.map((b) => `- ${b.work} → needs: ${b.decision}`)
+				.join("\n");
 			return {
-				content: [{ type: "text", text: `Acknowledged. AFK nudges paused until the user returns.\n${list}` }],
+				content: [
+					{
+						type: "text",
+						text: `Acknowledged. AFK nudges paused until the user returns.\n${list}`,
+					},
+				],
 				details: { blockers },
 			};
 		},

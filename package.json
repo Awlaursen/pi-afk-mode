@@ -37,7 +37,8 @@
     "typecheck": "tsc --noEmit"
   },
   "peerDependencies": {
-    "@earendil-works/pi-coding-agent": ">=0.85.0"
+    "@earendil-works/pi-coding-agent": "*",
+    "typebox": "*"
   },
   "devDependencies": {
     "@earendil-works/pi-coding-agent": "^0.85.1",
