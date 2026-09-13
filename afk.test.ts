@@ -39,6 +39,7 @@ function harness(opts: { running?: () => boolean } = {}) {
 	const stop = (stopReason: string) =>
 		fire("agent_end", { messages: [{ role: "assistant", stopReason }] });
 	return {
+		handlers: (ev: string) => handlers[ev] ?? [],
 		sent,
 		entries,
 		ctx,
@@ -155,4 +156,16 @@ test("subagentsRunning reads pi-subagents status files for this session only", (
 	} finally {
 		rmSync(dir, { recursive: true, force: true });
 	}
+});
+
+test("question tools are blocked while AFK, allowed otherwise", () => {
+	const h = harness();
+	h.fire("session_start");
+	const ask = (name: string) =>
+		h.handlers("tool_call").map((f: Function) => f({ toolName: name, input: {} }, h.ctx))[0];
+	assert.equal(ask("ask_user_question"), undefined);
+	h.cmd("on");
+	assert.equal(ask("ask_user_question")?.block, true);
+	assert.match(ask("questionnaire")?.reason, /afk_blocked/);
+	assert.equal(ask("bash"), undefined);
 });

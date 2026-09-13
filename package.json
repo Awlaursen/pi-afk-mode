@@ -1,6 +1,6 @@
 {
   "name": "pi-afk-mode",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Pi extension: /afk keeps the agent working until every remaining item is blocked on a human decision. Pauses while async pi-subagents run.",
   "type": "module",
   "license": "MIT",

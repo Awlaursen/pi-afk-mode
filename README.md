@@ -17,6 +17,7 @@ pi install npm:pi-afk-mode
 ## Guardrails
 
 - **Nudge cap**: 25 nudges per `/afk on` (status bar shows `afk 7/25`). Toggle `/afk` to reset. Costs are bounded even if the agent never declares itself blocked.
+- **Questions**: tools that ask the user something (`ask_user_question`, `question`, `questionnaire`, …) are blocked while AFK is on. The agent gets told to pick the sensible default and note the assumption, or to finish everything else and call `afk_blocked` if the decision is load-bearing. Without this, one question could stall an unattended session for hours.
 - **Abort / error**: no nudge after an aborted turn (you pressed Escape, you're at the keyboard) or an errored turn (don't loop on failures).
 - **Async subagents**: if [pi-subagents](https://www.npmjs.com/package/pi-subagents) has queued or running async children for this session, the agent is not nudged. Their completion wakes the session; the next settle nudges as usual. Detected by reading the same `status.json` files pi-subagents uses for its own outstanding-work check, so no dependency and no configuration. Without pi-subagents installed the check is a no-op.
 

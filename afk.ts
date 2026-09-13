@@ -13,6 +13,11 @@ import path from "node:path";
 
 const MAX_NUDGES = 25; // ponytail: hard cap per /afk on; runaway-cost guard, raise if real sessions hit it
 
+// Interactive question tools (pi-ask-user-question, pi's question/questionnaire examples, …) hang
+// the turn until someone answers. Nobody will. Block them and point at afk_blocked instead.
+export const ASK_TOOL = /^(ask_?user(_?question)?|question(naire)?)$/;
+const ASK_BLOCKED = `Blocked: the user is AFK, so no one can answer a question. Decide it yourself using the most sensible default and note the assumption in your final summary. If the work truly cannot proceed without this decision, keep going on everything that can, then call \`afk_blocked\` with the exact decision needed.`;
+
 const NUDGE = `The user is AFK. Continue productive work autonomously: finish open tasks, verify with tests/builds, review your own diff, tidy up, then pick up the next unblocked item.
 
 Only when EVERY remaining item genuinely requires a human decision, call the \`afk_blocked\` tool listing each blocker and the exact decision needed. Do not stop or ask questions otherwise — no one is reading.`;
@@ -136,6 +141,11 @@ export default function (pi: ExtensionAPI) {
 		blocked = false;
 		nudges = 0;
 		save();
+	});
+
+	pi.on("tool_call", (event) => {
+		if (on && ASK_TOOL.test(event.toolName))
+			return { block: true, reason: ASK_BLOCKED };
 	});
 
 	pi.on("agent_end", (event) => {
